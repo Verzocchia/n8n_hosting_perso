@@ -79,34 +79,10 @@ main:
   # N8n Kubernetes specific settings
   #
   persistence:
-    # If true, use a Persistent Volume Claim, If false, use emptyDir
-    enabled: false
-    # what type volume, possible options are [existing, emptyDir, dynamic] dynamic for Dynamic Volume Provisioning, existing for using an existing Claim
-    type: emptyDir
-    # Persistent Volume Storage Class
-    # If defined, storageClassName: <storageClass>
-    # If set to "-", storageClassName: "", which disables dynamic provisioning
-    # If undefined (the default) or set to null, no storageClassName spec is
-    #   set, choosing the default provisioner.  (gp2 on AWS, standard on
-    #   GKE, AWS & OpenStack)
-    #
-    # storageClass: "-"
-    # PVC annotations
-    #
-    # If you need this annotation include it under `values.yml` file and pvc.yml template will add it.
-    # This is not maintained at Helm v3 anymore.
-    # https://github.com/8gears/n8n-helm-chart/issues/8
-    #
-    # annotations:
-    #   helm.sh/resource-policy: keep
-    # Persistent Volume Access Mode
-    #
-    accessModes:
-      - ReadWriteOnce
-    # Persistent Volume size
-    size: 1Gi
-    # Use an existing PVC
-    # existingClaim:
+    enabled: true  # Utilise un volume persistant pour le webhook
+    type: dynamic  # Utilise une réclamation dynamique pour le volume
+    storageClass: "standard"  # Remplace par la classe de stockage appropriée si nécessaire
+    size: 2Gi
 
   extraVolumes: []
   #    - name: db-ca-cert
@@ -157,9 +133,9 @@ main:
 
   podSecurityContext:
     runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
+    runAsUser: null         
+    runAsGroup: null         
+    fsGroup: null
 
   securityContext: {}
   # capabilities:
@@ -237,17 +213,13 @@ main:
     # -- Service port
     port: 80
 
-  resources: {}
-  # We usually recommend not specifying default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+  resources: 
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
 
   autoscaling:
     enabled: false
@@ -265,7 +237,7 @@ main:
 # Worker related settings
 #
 worker:
-  enabled: false
+  enabled: true
 
   # additional (to main) config for worker
   config: {}
@@ -283,34 +255,10 @@ worker:
   # Worker Kubernetes specific settings
   #
   persistence:
-    # If true, use a Persistent Volume Claim, If false, use emptyDir
-    enabled: false
-    # what type volume, possible options are [existing, emptyDir, dynamic] dynamic for Dynamic Volume Provisioning, existing for using an existing Claim
-    type: emptyDir
-    # Persistent Volume Storage Class
-    # If defined, storageClassName: <storageClass>
-    # If set to "-", storageClassName: "", which disables dynamic provisioning
-    # If undefined (the default) or set to null, no storageClassName spec is
-    #   set, choosing the default provisioner.  (gp2 on AWS, standard on
-    #   GKE, AWS & OpenStack)
-    #
-    # storageClass: "-"
-    # PVC annotations
-    #
-    # If you need this annotation include it under `values.yml` file and pvc.yml template will add it.
-    # This is not maintained at Helm v3 anymore.
-    # https://github.com/8gears/n8n-helm-chart/issues/8
-    #
-    # annotations:
-    #   helm.sh/resource-policy: keep
-    # Persistent Volume Access Mode
-    accessModes:
-      - ReadWriteOnce
-    # Persistent Volume size
-    size: 1Gi
-    # Use an existing PVC
-    # existingClaim:
-
+    enabled: true  # Utilise un volume persistant pour le webhook
+    type: dynamic  # Utilise une réclamation dynamique pour le volume
+    storageClass: "standard"  # Remplace par la classe de stockage appropriée si nécessaire
+    size: 2Gi
   # Number of desired pods.
   replicaCount: 1
 
@@ -350,7 +298,8 @@ worker:
     runAsGroup: 1000
     fsGroup: 1000
 
-  securityContext: {}
+  securityContext: 
+    runAsUser: null
   # capabilities:
   #   drop:
   #   - ALL
@@ -422,17 +371,13 @@ worker:
     # -- Service port
     port: 80
 
-  resources: {}
-  # We usually recommend not specifying default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+  resources: 
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
 
   autoscaling:
     enabled: false
@@ -450,7 +395,7 @@ worker:
 # See https://github.com/8gears/n8n-helm-chart/issues/39#issuecomment-1579991754 for the full explanation.
 # Webhook processes rely on Valkey/Redis too.
 webhook:
-  enabled: false
+  enabled: true  
   # additional (to main) config for webhook
   config: {}
   # additional (to main) config for webhook
@@ -466,36 +411,10 @@ webhook:
   # Webhook Kubernetes specific settings
   #
   persistence:
-    # If true, use a Persistent Volume Claim, If false, use emptyDir
-    enabled: false
-    # what type volume, possible options are [existing, emptyDir, dynamic] dynamic for Dynamic Volume Provisioning, existing for using an existing Claim
-    type: emptyDir
-    # Persistent Volume Storage Class
-    # If defined, storageClassName: <storageClass>
-    # If set to "-", storageClassName: "", which disables dynamic provisioning
-    # If undefined (the default) or set to null, no storageClassName spec is
-    #   set, choosing the default provisioner.  (gp2 on AWS, standard on
-    #   GKE, AWS & OpenStack)
-    #
-    # storageClass: "-"
-    # PVC annotations
-    #
-    # If you need this annotation include it under `values.yml` file and pvc.yml template will add it.
-    # This is not maintained at Helm v3 anymore.
-    # https://github.com/8gears/n8n-helm-chart/issues/8
-    #
-    # annotations:
-    #   helm.sh/resource-policy: keep
-    # Persistent Volume Access Mode
-    #
-    accessModes:
-      - ReadWriteOnce
-    # Persistent Volume size
-    #
-    size: 1Gi
-    # Use an existing PVC
-    #
-    # existingClaim:
+    enabled: true  # Utilise un volume persistant pour le webhook
+    type: dynamic  # Utilise une réclamation dynamique pour le volume
+    storageClass: "standard"  # Remplace par la classe de stockage appropriée si nécessaire
+    size: 2Gi
 
   # Number of desired pods.
   replicaCount: 1
@@ -609,17 +528,14 @@ webhook:
     # -- Service port
     port: 80
 
-  resources: {}
-  # We usually recommend not specifying default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+  resources: 
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
   autoscaling:
     enabled: false
     minReplicas: 1
