@@ -48,6 +48,25 @@ ingress:
 # the main (n8n) application related configuration + Kubernetes specific settings
 # The config: {} dictionary is converted to environmental variables in the ConfigMap.
 main:
+  env:
+    - name: N8N_USER_FOLDER
+      value: /home/node/.n8n
+
+  volumeMounts:
+    - name: n8n-user-folder
+      mountPath: /home/node/.n8n
+
+  volumes:
+    - name: n8n-user-folder
+      emptyDir: {}
+
+  command:
+    - /bin/sh
+    - -c
+    - |
+        mkdir -p /home/node/.n8n && \
+        chown -R node:node /home/node/.n8n && \
+        exec su node -c "n8n start"
   # See https://docs.n8n.io/hosting/configuration/environment-variables/ for all values.
   config: {}
   #    n8n:
@@ -79,10 +98,34 @@ main:
   # N8n Kubernetes specific settings
   #
   persistence:
-    enabled: true  # Utilise un volume persistant pour le webhook
-    type: dynamic  # Utilise une réclamation dynamique pour le volume
-    storageClass: "standard"  # Remplace par la classe de stockage appropriée si nécessaire
-    size: 2Gi
+    # If true, use a Persistent Volume Claim, If false, use emptyDir
+    enabled: false
+    # what type volume, possible options are [existing, emptyDir, dynamic] dynamic for Dynamic Volume Provisioning, existing for using an existing Claim
+    type: emptyDir
+    # Persistent Volume Storage Class
+    # If defined, storageClassName: <storageClass>
+    # If set to "-", storageClassName: "", which disables dynamic provisioning
+    # If undefined (the default) or set to null, no storageClassName spec is
+    #   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    #   GKE, AWS & OpenStack)
+    #
+    # storageClass: "-"
+    # PVC annotations
+    #
+    # If you need this annotation include it under `values.yml` file and pvc.yml template will add it.
+    # This is not maintained at Helm v3 anymore.
+    # https://github.com/8gears/n8n-helm-chart/issues/8
+    #
+    # annotations:
+    #   helm.sh/resource-policy: keep
+    # Persistent Volume Access Mode
+    #
+    accessModes:
+      - ReadWriteOnce
+    # Persistent Volume size
+    size: 1Gi
+    # Use an existing PVC
+    # existingClaim:
 
   extraVolumes: []
   #    - name: db-ca-cert
@@ -132,9 +175,9 @@ main:
   podLabels: {}
 
   podSecurityContext:
-    runAsNonRoot: true
-    runAsUser: null         
-    runAsGroup: null         
+    runAsNonRoot: false
+    runAsUser: null
+    runAsGroup: null
     fsGroup: null
 
   securityContext: {}
@@ -197,12 +240,16 @@ main:
   # List of initialization containers belonging to the pod. Init containers are executed in order prior to containers being started.
   # See https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
   initContainers: []
-  #    - name: init-data-dir
-  #      image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-  #      command: [ "/bin/sh", "-c", "mkdir -p /home/node/.n8n/" ]
-  #      volumeMounts:
-  #        - name: data
-  #          mountPath: /home/node/.n8n
+  #- name: init-data-dir
+  #    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+  #    command:
+  #      - /bin/sh
+  #      - -c
+  #      - >
+  #          mkdir -p /home/node/.n8n
+  #    volumeMounts:
+  #      - name: n8n-user-folder
+  #        mountPath: /home/node/.n8n
 
 
   service:
@@ -213,13 +260,13 @@ main:
     # -- Service port
     port: 80
 
-  resources: 
+  resources:
     requests:
-      cpu: "100m"
-      memory: "256Mi"
+      cpu: "200m"       # 0.2 vCPU pour le pod principal
+      memory: "512Mi"    # 512 Mi de RAM
     limits:
-      cpu: "500m"
-      memory: "512Mi"
+      cpu: "1"           # 1 vCPU max
+      memory: "2Gi"
 
   autoscaling:
     enabled: false
@@ -239,6 +286,26 @@ main:
 worker:
   enabled: true
 
+  env:
+    - name: N8N_USER_FOLDER
+      value: /home/node/.n8n
+
+  volumeMounts:
+    - name: n8n-user-folder
+      mountPath: /home/node/.n8n
+
+  volumes:
+    - name: n8n-user-folder
+      emptyDir: {}
+
+  command:
+    - /bin/sh
+    - -c
+    - |
+        mkdir -p /home/node/.n8n && \
+        chown -R node:node /home/node/.n8n && \
+        exec su node -c "n8n worker"
+
   # additional (to main) config for worker
   config: {}
 
@@ -255,10 +322,34 @@ worker:
   # Worker Kubernetes specific settings
   #
   persistence:
-    enabled: true  # Utilise un volume persistant pour le webhook
-    type: dynamic  # Utilise une réclamation dynamique pour le volume
-    storageClass: "standard"  # Remplace par la classe de stockage appropriée si nécessaire
-    size: 2Gi
+    # If true, use a Persistent Volume Claim, If false, use emptyDir
+    enabled: false
+    # what type volume, possible options are [existing, emptyDir, dynamic] dynamic for Dynamic Volume Provisioning, existing for using an existing Claim
+    type: emptyDir
+    # Persistent Volume Storage Class
+    # If defined, storageClassName: <storageClass>
+    # If set to "-", storageClassName: "", which disables dynamic provisioning
+    # If undefined (the default) or set to null, no storageClassName spec is
+    #   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    #   GKE, AWS & OpenStack)
+    #
+    # storageClass: "-"
+    # PVC annotations
+    #
+    # If you need this annotation include it under `values.yml` file and pvc.yml template will add it.
+    # This is not maintained at Helm v3 anymore.
+    # https://github.com/8gears/n8n-helm-chart/issues/8
+    #
+    # annotations:
+    #   helm.sh/resource-policy: keep
+    # Persistent Volume Access Mode
+    accessModes:
+      - ReadWriteOnce
+    # Persistent Volume size
+    size: 1Gi
+    # Use an existing PVC
+    # existingClaim:
+
   # Number of desired pods.
   replicaCount: 1
 
@@ -293,13 +384,12 @@ worker:
   podLabels: {}
 
   podSecurityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
-
-  securityContext: 
+    runAsNonRoot: false
     runAsUser: null
+    runAsGroup: null
+    fsGroup: null
+
+  securityContext: {}
   # capabilities:
   #   drop:
   #   - ALL
@@ -371,13 +461,13 @@ worker:
     # -- Service port
     port: 80
 
-  resources: 
+  resources:
     requests:
-      cpu: "100m"
-      memory: "256Mi"
+      cpu: "200m"       # 0.2 vCPU pour le pod worker
+      memory: "512Mi"    # 512 Mi de RAM
     limits:
-      cpu: "500m"
-      memory: "512Mi"
+      cpu: "1"           # 1 vCPU max
+      memory: "2Gi"
 
   autoscaling:
     enabled: false
@@ -395,7 +485,28 @@ worker:
 # See https://github.com/8gears/n8n-helm-chart/issues/39#issuecomment-1579991754 for the full explanation.
 # Webhook processes rely on Valkey/Redis too.
 webhook:
-  enabled: true  
+  enabled: true
+
+  env:
+    - name: N8N_USER_FOLDER
+      value: /home/node/.n8n
+
+  volumeMounts:
+    - name: n8n-user-folder
+      mountPath: /home/node/.n8n
+
+  volumes:
+    - name: n8n-user-folder
+      emptyDir: {}
+
+  command:
+    - /bin/sh
+    - -c
+    - |
+        mkdir -p /home/node/.n8n && \
+        chown -R node:node /home/node/.n8n && \
+        exec su node -c "n8n webhook"
+
   # additional (to main) config for webhook
   config: {}
   # additional (to main) config for webhook
@@ -411,10 +522,36 @@ webhook:
   # Webhook Kubernetes specific settings
   #
   persistence:
-    enabled: true  # Utilise un volume persistant pour le webhook
-    type: dynamic  # Utilise une réclamation dynamique pour le volume
-    storageClass: "standard"  # Remplace par la classe de stockage appropriée si nécessaire
-    size: 2Gi
+    # If true, use a Persistent Volume Claim, If false, use emptyDir
+    enabled: false
+    # what type volume, possible options are [existing, emptyDir, dynamic] dynamic for Dynamic Volume Provisioning, existing for using an existing Claim
+    type: emptyDir
+    # Persistent Volume Storage Class
+    # If defined, storageClassName: <storageClass>
+    # If set to "-", storageClassName: "", which disables dynamic provisioning
+    # If undefined (the default) or set to null, no storageClassName spec is
+    #   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    #   GKE, AWS & OpenStack)
+    #
+    # storageClass: "-"
+    # PVC annotations
+    #
+    # If you need this annotation include it under `values.yml` file and pvc.yml template will add it.
+    # This is not maintained at Helm v3 anymore.
+    # https://github.com/8gears/n8n-helm-chart/issues/8
+    #
+    # annotations:
+    #   helm.sh/resource-policy: keep
+    # Persistent Volume Access Mode
+    #
+    accessModes:
+      - ReadWriteOnce
+    # Persistent Volume size
+    #
+    size: 1Gi
+    # Use an existing PVC
+    #
+    # existingClaim:
 
   # Number of desired pods.
   replicaCount: 1
@@ -451,10 +588,10 @@ webhook:
   podLabels: {}
 
   podSecurityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
+    runAsNonRoot: false
+    runAsUser: null
+    runAsGroup: null
+    fsGroup: null
 
   securityContext: {}
   # capabilities:
@@ -528,14 +665,14 @@ webhook:
     # -- Service port
     port: 80
 
-  resources: 
+  resources:
     requests:
-      cpu: "100m"
-      memory: "256Mi"
+      cpu: "100m"       # 0.1 vCPU pour le pod webhook
+      memory: "256Mi"    # 256 Mi de RAM
     limits:
-      cpu: "500m"
+      cpu: "500m"       # 0.5 vCPU max
       memory: "512Mi"
-
+       
   autoscaling:
     enabled: false
     minReplicas: 1
